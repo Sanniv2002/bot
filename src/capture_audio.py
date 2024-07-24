@@ -1,17 +1,34 @@
 import subprocess
 import threading
-import time
 
-def start_ffmpeg():
-    # Command to start FFmpeg to capture audio
-    command = [
-        'ffmpeg',
-        '-f', 'pulse',
-        '-i', 'default',
-        'output.wav'
+
+def stream_audio_to_websocket():
+    websocket_url = "ws://localhost:8765"
+
+    # FFmpeg command to capture audio from PulseAudio
+    ffmpeg_command = [
+        "ffmpeg",
+        "-f", "pulse",
+        "-i", "alsa_output.pci-0000_00_1f.3.analog-stereo.monitor",
+        "-f", "wav",
+        "-"
     ]
-    subprocess.run(command)
+
+    # websocat command to send FFmpeg output to the WebSocket server
+    websocat_command = [
+        "websocat",
+        "-u",
+        websocket_url
+    ]
+
+    ffmpeg_process = subprocess.Popen(
+        ffmpeg_command, stdout=subprocess.PIPE, text=True)
+    websocat_process = subprocess.Popen(
+        websocat_command, stdin=ffmpeg_process, stdout=subprocess.PIPE, text=True)
+    output, error = websocat_process.communicate()
+
+    print(output)
 
 
 if __name__ == "__main__":
-    start_ffmpeg()
+    stream_audio_to_websocket()
